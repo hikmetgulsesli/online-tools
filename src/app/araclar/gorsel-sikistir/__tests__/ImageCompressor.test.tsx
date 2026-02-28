@@ -1,6 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ImageCompressor from "../ImageCompressor";
+
+// Mock browser-image-compression
+vi.mock("browser-image-compression", () => ({
+  default: vi.fn(),
+}));
+
+import imageCompression from "browser-image-compression";
 
 describe("ImageCompressor", () => {
   beforeEach(() => {
@@ -16,7 +23,7 @@ describe("ImageCompressor", () => {
 
   it("renders page heading", () => {
     render(<ImageCompressor />);
-    expect(screen.getByText("Görsel Sıkıştırma")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Görsel Sıkıştırma" })).toBeInTheDocument();
   });
 
   it("renders drop zone", () => {
@@ -25,23 +32,36 @@ describe("ImageCompressor", () => {
     expect(screen.getByText(/Görseli buraya sürükleyin/)).toBeInTheDocument();
   });
 
-  it("renders quality slider", () => {
+  it("renders quality slider after image upload", async () => {
+    const mockFile = new File(["test"], "test.png", { type: "image/png" });
+    
+    (imageCompression as unknown as Mock).mockResolvedValue({
+      name: "compressed-test.png",
+      size: 50000,
+      type: "image/png",
+    });
+
     render(<ImageCompressor />);
+    
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [mockFile] } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("quality-slider")).toBeInTheDocument();
+    });
+    
     const slider = screen.getByTestId("quality-slider");
-    expect(slider).toBeInTheDocument();
     expect(slider).toHaveValue("80");
   });
 
   it("accepts file upload via input", async () => {
     const mockFile = new File(["test"], "test.png", { type: "image/png" });
     
-    vi.mock("browser-image-compression", () => ({
-      default: vi.fn().mockResolvedValue({
-        name: "compressed-test.png",
-        size: 50000,
-        type: "image/png",
-      }),
-    }));
+    (imageCompression as unknown as Mock).mockResolvedValue({
+      name: "compressed-test.png",
+      size: 50000,
+      type: "image/png",
+    });
 
     render(<ImageCompressor />);
     
@@ -64,7 +84,7 @@ describe("ImageCompressor", () => {
     fireEvent.change(input, { target: { files: [mockFile] } });
 
     await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith("Desteklenen formatlar: JPG, PNG, WebP");
+      expect(alertMock).toHaveBeenCalledWith("Lütfen bir görsel dosyası seçin.");
     });
     
     alertMock.mockRestore();
@@ -73,13 +93,11 @@ describe("ImageCompressor", () => {
   it("handles drag and drop", async () => {
     const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
     
-    vi.mock("browser-image-compression", () => ({
-      default: vi.fn().mockResolvedValue({
-        name: "compressed-test.jpg",
-        size: 50000,
-        type: "image/jpeg",
-      }),
-    }));
+    (imageCompression as unknown as Mock).mockResolvedValue({
+      name: "compressed-test.jpg",
+      size: 50000,
+      type: "image/jpeg",
+    });
 
     render(<ImageCompressor />);
     
@@ -96,13 +114,11 @@ describe("ImageCompressor", () => {
   });
 
   it("displays download button after compression", async () => {
-    vi.mock("browser-image-compression", () => ({
-      default: vi.fn().mockResolvedValue({
-        name: "test.jpg",
-        size: 50000,
-        type: "image/jpeg",
-      }),
-    }));
+    (imageCompression as unknown as Mock).mockResolvedValue({
+      name: "test.jpg",
+      size: 50000,
+      type: "image/jpeg",
+    });
 
     const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
     
@@ -118,13 +134,11 @@ describe("ImageCompressor", () => {
   });
 
   it("shows compression stats after processing", async () => {
-    vi.mock("browser-image-compression", () => ({
-      default: vi.fn().mockResolvedValue({
-        name: "test.jpg",
-        size: 50000,
-        type: "image/jpeg",
-      }),
-    }));
+    (imageCompression as unknown as Mock).mockResolvedValue({
+      name: "test.jpg",
+      size: 50000,
+      type: "image/jpeg",
+    });
 
     const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
     
@@ -139,13 +153,11 @@ describe("ImageCompressor", () => {
   });
 
   it("has reset button after compression", async () => {
-    vi.mock("browser-image-compression", () => ({
-      default: vi.fn().mockResolvedValue({
-        name: "test.jpg",
-        size: 50000,
-        type: "image/jpeg",
-      }),
-    }));
+    (imageCompression as unknown as Mock).mockResolvedValue({
+      name: "test.jpg",
+      size: 50000,
+      type: "image/jpeg",
+    });
 
     const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
     
