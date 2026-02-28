@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface HeaderProps {
   currentPath?: string;
@@ -15,8 +16,10 @@ const navItems = [
   { href: "/gizlilik-politikasi", label: "Gizlilik" },
 ];
 
-export function Header({ currentPath = "/" }: HeaderProps) {
+export function Header({ currentPath }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const activePath = currentPath || pathname;
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -38,11 +41,11 @@ export function Header({ currentPath = "/" }: HeaderProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={\`text-sm transition-colors \${
-                currentPath === item.href
+              className={`text-sm transition-colors ${
+                activePath === item.href
                   ? "text-blue-600 font-medium"
                   : "text-slate-600 hover:text-slate-900"
-              }\`}
+              }`}
             >
               {item.label}
             </Link>
@@ -68,11 +71,11 @@ export function Header({ currentPath = "/" }: HeaderProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={\`block py-2 text-sm transition-colors \${
-                  currentPath === item.href
+                className={`block py-2 text-sm transition-colors ${
+                  activePath === item.href
                     ? "text-blue-600 font-medium"
                     : "text-slate-600 hover:text-slate-900"
-                }\`}
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.label}
