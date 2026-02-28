@@ -110,7 +110,7 @@ describe("QRCodeGenerator", () => {
     expect(screen.getByText(/5 \/ 2000 karakter/)).toBeInTheDocument();
   });
 
-  it("has proper SEO meta structure", () => {
+  it("renders main title and description for page content", () => {
     render(<QRCodeGenerator />);
 
     // Check for page title element
@@ -122,7 +122,7 @@ describe("QRCodeGenerator", () => {
     ).toBeInTheDocument();
   });
 
-  it("is mobile responsive", () => {
+  it("renders with responsive container classes", () => {
     render(<QRCodeGenerator />);
 
     // Check that main container has responsive classes

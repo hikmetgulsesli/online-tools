@@ -1,7 +1,7 @@
 "use client";
-import Link from 'next/link';
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { toDataURL, toString } from "qrcode";
 import { Download, RefreshCw, QrCode, Copy, Check } from "lucide-react";
 
@@ -53,7 +53,8 @@ export function QRCodeGenerator() {
 
       setQrDataUrl(pngData);
       setQrSvg(svgData);
-    } catch {
+    } catch (err) {
+      console.error("QR code generation failed:", err);
       setError("QR kod oluşturulurken bir hata oluştu.");
     } finally {
       setIsGenerating(false);
@@ -100,7 +101,8 @@ export function QRCodeGenerator() {
       await navigator.clipboard.writeText(input);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (err) {
+      console.error("QR code generation failed:", err);
       // Silently fail
     }
   };
@@ -209,9 +211,9 @@ export function QRCodeGenerator() {
                   "https://github.com",
                   "Merhaba Dünya!",
                   "WIFI:T:WPA;S:Agim;P:şifre;;",
-                ].map((example) => (
+                ].map((example, index) => (
                   <button
-                    key={example}
+                    key={`${example}-${index}`}
                     onClick={() => setInput(example)}
                     className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
                   >
@@ -231,7 +233,7 @@ export function QRCodeGenerator() {
             <div className="aspect-square bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden">
               {isGenerating ? (
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-10 h-10 border-[3px] border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+                  <div className="w-10 h-10 border-3 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
                   <span className="text-sm text-slate-500">Oluşturuluyor...</span>
                 </div>
               ) : qrDataUrl ? (
