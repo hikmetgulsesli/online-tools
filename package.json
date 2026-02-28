@@ -17,7 +17,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",
-    "next": "^16.1.6",
+    "next": "^14.2.4",
     "qrcode": "^1.5.4",
     "react": "^18",
     "react-dom": "^18",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
+    "@testing-library/react": "^15.0.7",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -37,6 +37,6 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
-    "vitest": "^4.0.18"
+    "vitest": "^1.6.0"
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { toDataURL, toString } from "qrcode";
 import { Download, RefreshCw, QrCode, Copy, Check } from "lucide-react";
 
@@ -52,7 +53,8 @@ export function QRCodeGenerator() {
 
       setQrDataUrl(pngData);
       setQrSvg(svgData);
-    } catch {
+    } catch (err) {
+      console.error("QR code generation failed:", err);
       setError("QR kod oluşturulurken bir hata oluştu.");
     } finally {
       setIsGenerating(false);
@@ -99,7 +101,8 @@ export function QRCodeGenerator() {
       await navigator.clipboard.writeText(input);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (err) {
+      console.error("QR code generation failed:", err);
       // Silently fail
     }
   };
@@ -116,20 +119,20 @@ export function QRCodeGenerator() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <a
+          <Link
             href="/"
             className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors"
           >
             <QrCode className="w-6 h-6 text-blue-600" />
             <span className="font-semibold text-lg">Online Araçlar</span>
-          </a>
+          </Link>
           <nav className="hidden sm:flex items-center gap-6">
-            <a
+            <Link
               href="/"
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
             >
               Ana Sayfa
-            </a>
+            </Link>
           </nav>
         </div>
       </header>
@@ -208,9 +211,9 @@ export function QRCodeGenerator() {
                   "https://github.com",
                   "Merhaba Dünya!",
                   "WIFI:T:WPA;S:Agim;P:şifre;;",
-                ].map((example) => (
+                ].map((example, index) => (
                   <button
-                    key={example}
+                    key={`${example}-${index}`}
                     onClick={() => setInput(example)}
                     className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
                   >
@@ -306,24 +309,24 @@ export function QRCodeGenerator() {
               © 2024 Online Araçlar. Tüm hakları saklıdır.
             </p>
             <div className="flex items-center gap-6">
-              <a
+              <Link
                 href="/hakkimizda"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
                 Hakkımızda
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/iletisim"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
                 İletişim
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/gizlilik"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
                 Gizlilik
-              </a>
+              </Link>
             </div>
           </div>
         </div>
