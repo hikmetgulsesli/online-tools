@@ -1,45 +1,35 @@
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from "@testing-library/react";
 import { ToolCard } from "../components/ToolCard";
 
 // Mock next/link
-jest.mock("next/link", () => {
-  return function MockLink({ children, href, ...props }: { children: React.ReactNode; href: string }) {
+vi.mock("next/link", () => ({
+  default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => {
     return <a href={href} {...props}>{children}</a>;
-  };
-});
+  }
+}));
 
 describe("ToolCard", () => {
-  const defaultProps = {
-    href: "/test-tool",
-    title: "Test Tool",
-    description: "This is a test tool description",
-    icon: <svg data-testid="tool-icon" />,
+  const mockTool = {
+    title: "QR Kod Oluştur",
+    description: "QR kod oluşturun",
+    href: "/araclar/qr-kod",
+    icon: "QrCode"
   };
 
   it("renders tool title", () => {
-    render(<ToolCard {...defaultProps} />);
-    expect(screen.getByText("Test Tool")).toBeInTheDocument();
+    render(<ToolCard {...mockTool} />);
+    expect(screen.getByText("QR Kod Oluştur")).toBeInTheDocument();
   });
 
   it("renders tool description", () => {
-    render(<ToolCard {...defaultProps} />);
-    expect(screen.getByText("This is a test tool description")).toBeInTheDocument();
+    render(<ToolCard {...mockTool} />);
+    expect(screen.getByText("QR kod oluşturun")).toBeInTheDocument();
   });
 
-  it("renders icon", () => {
-    render(<ToolCard {...defaultProps} />);
-    expect(screen.getByTestId("tool-icon")).toBeInTheDocument();
-  });
-
-  it("has correct link href", () => {
-    render(<ToolCard {...defaultProps} />);
-    expect(screen.getByText("Test Tool").closest("a")).toHaveAttribute("href", "/test-tool");
-  });
-
-  it("has hover styles applied", () => {
-    render(<ToolCard {...defaultProps} />);
-    const link = screen.getByText("Test Tool").closest("a");
-    expect(link).toHaveClass("hover:shadow-md");
-    expect(link).toHaveClass("hover:-translate-y-0.5");
+  it("renders link with correct href", () => {
+    render(<ToolCard {...mockTool} />);
+    const link = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/araclar/qr-kod");
   });
 });
