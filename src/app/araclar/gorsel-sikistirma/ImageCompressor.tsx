@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, Download, X, Loader2 } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { Header } from "@/components/layout/Header";
@@ -133,10 +133,20 @@ export default function ImageCompressorPage() {
     document.body.removeChild(link);
   }, [compressedImage]);
 
+  // Cleanup to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (compressedImage) {
+        if (URL.revokeObjectURL) URL.revokeObjectURL(compressedImage.originalUrl);
+        if (URL.revokeObjectURL) URL.revokeObjectURL(compressedImage.compressedUrl);
+      }
+    };
+  }, [compressedImage]);
+
   const handleReset = useCallback(() => {
     if (compressedImage) {
-      URL.revokeObjectURL(compressedImage.originalUrl);
-      URL.revokeObjectURL(compressedImage.compressedUrl);
+      if (URL.revokeObjectURL) URL.revokeObjectURL(compressedImage.originalUrl);
+      if (URL.revokeObjectURL) URL.revokeObjectURL(compressedImage.compressedUrl);
     }
     setCompressedImage(null);
     if (fileInputRef.current) {
