@@ -1,12 +1,13 @@
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Header } from "../components/Header";
 
 // Mock next/link
-jest.mock("next/link", () => {
-  return function MockLink({ children, href, ...props }: { children: React.ReactNode; href: string }) {
+vi.mock("next/link", () => ({
+  default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => {
     return <a href={href} {...props}>{children}</a>;
-  };
-});
+  }
+}));
 
 describe("Header", () => {
   it("renders logo and brand name", () => {

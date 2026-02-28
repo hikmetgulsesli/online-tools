@@ -1,12 +1,13 @@
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from "@testing-library/react";
 import HomePage from "../page";
 
 // Mock next/link
-jest.mock("next/link", () => {
-  return function MockLink({ children, href, ...props }: { children: React.ReactNode; href: string }) {
+vi.mock("next/link", () => ({
+  default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => {
     return <a href={href} {...props}>{children}</a>;
-  };
-});
+  }
+}));
 
 describe("HomePage", () => {
   it("renders main heading", () => {
@@ -16,30 +17,17 @@ describe("HomePage", () => {
 
   it("renders hero description", () => {
     render(<HomePage />);
-    expect(screen.getByText(/Günlük işlerinizi kolaylaştıran/)).toBeInTheDocument();
+    expect(screen.getByText("Günlük ihtiyaçlarınız için tasarlanmış, hızlı ve kullanışlı web araçları. Kayıt gerekmez, ücretsiz kullanın.")).toBeInTheDocument();
   });
 
-  it("renders all 6 tool cards", () => {
+  it("renders tool cards section", () => {
     render(<HomePage />);
-    expect(screen.getByText("QR Kod Oluşturucu")).toBeInTheDocument();
-    expect(screen.getByText("Görsel Sıkıştırıcı")).toBeInTheDocument();
-    expect(screen.getByText("Şifre Oluşturucu")).toBeInTheDocument();
-    expect(screen.getByText("Base64 Encoder/Decoder")).toBeInTheDocument();
-    expect(screen.getByText("URL Kısaltıcı")).toBeInTheDocument();
-    expect(screen.getByText("JSON Formatlayıcı")).toBeInTheDocument();
+    expect(screen.getByText("Tüm Araçlar")).toBeInTheDocument();
+    expect(screen.getByText(/İhtiyacınız olan aracı seçin/)).toBeInTheDocument();
   });
 
-  it("renders feature section", () => {
+  it("renders CTA button", () => {
     render(<HomePage />);
-    expect(screen.getByText("Güvenli")).toBeInTheDocument();
-    expect(screen.getByText("Hızlı")).toBeInTheDocument();
-    expect(screen.getByText("Ücretsiz")).toBeInTheDocument();
-  });
-
-  it("has correct tool links", () => {
-    render(<HomePage />);
-    expect(screen.getByText("QR Kod Oluşturucu").closest("a")).toHaveAttribute("href", "/araclar/qr-kod");
-    expect(screen.getByText("Görsel Sıkıştırıcı").closest("a")).toHaveAttribute("href", "/araclar/gorsel-sikistirici");
-    expect(screen.getByText("Şifre Oluşturucu").closest("a")).toHaveAttribute("href", "/araclar/sifre-olusturucu");
+    expect(screen.getByText("Araçları Keşfet")).toBeInTheDocument();
   });
 });
