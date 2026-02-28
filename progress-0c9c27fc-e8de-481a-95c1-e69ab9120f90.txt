@@ -1,5 +1,5 @@
-=== US-001: Project Setup & Design System ===
-COMPLETED: 2026-02-28T04:48:00+03:00
-FILES CHANGED: src/app/page.test.tsx, src/app/globals.css, tailwind.config.ts, .env.example, .gitignore, package.json
-KEY DECISIONS: Fixed test file to use accessible queries (getByRole, getAllByRole) instead of getByText to handle duplicate text in header/footer
-DEPENDENCIES ADDED: None
+=== US-003: QR Code Generator Tool ===
+COMPLETED: 2026-02-28T04:52:00+03:00
+FILES CHANGED: src/app/araclar/qr-kod/page.tsx, src/app/araclar/qr-kod/QRCodeGenerator.tsx, src/app/araclar/qr-kod/__tests__/QRCodeGenerator.test.tsx
+KEY DECISIONS: Full implementation already present - QR generation using qrcode library with PNG/SVG download, SEO meta tags, mobile responsive design
+DEPENDENCIES ADDED: None (qrcode library already installed)
