@@ -14,12 +14,11 @@ interface ShortenedUrl {
 
 const generateShortCode = (): string => {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  const randomValues = new Uint8Array(6);
+  crypto.getRandomValues(randomValues);
+  return Array.from(randomValues).map(val => chars[val % chars.length]).join('');
 };
+
 
 const isValidUrl = (url: string): boolean => {
   try {
@@ -85,7 +84,26 @@ export function UrlShortener() {
     // Simulate API delay for better UX
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    const shortCode = generateShortCode();
+    // Check if URL already exists in history
+    const existingUrl = shortenedUrls.find(item => item.originalUrl === normalizedUrl);
+    if (existingUrl) {
+      // Move existing URL to top of history
+      const updatedHistory = [
+        existingUrl,
+        ...shortenedUrls.filter((item) => item.id !== existingUrl.id),
+      ].slice(0, 10);
+      setShortenedUrls(updatedHistory);
+      setUrl("");
+      setIsLoading(false);
+      return;
+    }
+
+    // Generate unique short code (check for collisions)
+    let shortCode = generateShortCode();
+    while (shortenedUrls.some(item => item.shortCode === shortCode)) {
+      shortCode = generateShortCode();
+    }
+
     const newUrl: ShortenedUrl = {
       id: Date.now().toString(),
       originalUrl: normalizedUrl,
@@ -97,7 +115,7 @@ export function UrlShortener() {
     setShortenedUrls(prev => [newUrl, ...prev]);
     setUrl("");
     setIsLoading(false);
-  }, [url]);
+  }, [url, shortenedUrls]);
 
   const copyToClipboard = async (shortUrl: string, id: string) => {
     try {
