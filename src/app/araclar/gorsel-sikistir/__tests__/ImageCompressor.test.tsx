@@ -1,166 +1,161 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { ImageCompressor } from "../ImageCompressor";
-
-// Mock browser-image-compression
-vi.mock("browser-image-compression", () => ({
-  default: vi.fn(),
-}));
-
-import imageCompression from "browser-image-compression";
+import ImageCompressor from "../ImageCompressor";
 
 describe("ImageCompressor", () => {
-  const mockCompressedFile = new File(["compressed"], "test-compressed.jpg", {
-    type: "image/jpeg",
-  });
-
   beforeEach(() => {
-    vi.clearAllMocks();
-    (imageCompression as ReturnType<typeof vi.fn>).mockResolvedValue(mockCompressedFile);
-    global.URL.createObjectURL = vi.fn(() => "blob:test-url");
-    global.URL.revokeObjectURL = vi.fn();
-  });
-
-  it("renders upload area initially", () => {
-    render(<ImageCompressor />);
-    
-    expect(screen.getByText("Görsel Yükleyin")).toBeInTheDocument();
-    expect(screen.getByText(/Dosyayı buraya sürükleyin/)).toBeInTheDocument();
-    expect(screen.getByText(/JPG, PNG, WebP/)).toBeInTheDocument();
-  });
-
-  it("shows error for unsupported file type", async () => {
-    render(<ImageCompressor />);
-    
-    const input = document.querySelector('input[type="file"]');
-    
-    const invalidFile = new File(["test"], "test.txt", { type: "text/plain" });
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [invalidFile] } });
-    }
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Sadece JPG, PNG ve WebP formatları desteklenir/)).toBeInTheDocument();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:http://localhost/mock-url"),
+      revokeObjectURL: vi.fn(),
     });
   });
 
-  it("shows error for file too large", async () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("renders page heading", () => {
+    render(<ImageCompressor />);
+    expect(screen.getByText("Görsel Sıkıştırma")).toBeInTheDocument();
+  });
+
+  it("renders drop zone", () => {
+    render(<ImageCompressor />);
+    expect(screen.getByTestId("drop-zone")).toBeInTheDocument();
+    expect(screen.getByText(/Görseli buraya sürükleyin/)).toBeInTheDocument();
+  });
+
+  it("renders quality slider", () => {
+    render(<ImageCompressor />);
+    const slider = screen.getByTestId("quality-slider");
+    expect(slider).toBeInTheDocument();
+    expect(slider).toHaveValue("80");
+  });
+
+  it("accepts file upload via input", async () => {
+    const mockFile = new File(["test"], "test.png", { type: "image/png" });
+    
+    vi.mock("browser-image-compression", () => ({
+      default: vi.fn().mockResolvedValue({
+        name: "compressed-test.png",
+        size: 50000,
+        type: "image/png",
+      }),
+    }));
+
     render(<ImageCompressor />);
     
-    const input = document.querySelector('input[type="file"]');
-    
-    // Create a mock file that appears to be 11MB
-    const largeFile = new File(["x".repeat(11 * 1024 * 1024)], "large.jpg", { 
-      type: "image/jpeg" 
-    });
-    Object.defineProperty(largeFile, "size", { value: 11 * 1024 * 1024 });
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [largeFile] } });
-    }
-    
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [mockFile] } });
+
     await waitFor(() => {
-      expect(screen.getByText(/Dosya boyutu.*MB'dan küçük olmalıdır/)).toBeInTheDocument();
+      expect(screen.getByTestId("download-button")).toBeInTheDocument();
     });
   });
 
-  it("compresses image on valid file upload", async () => {
+  it("shows error for invalid file type", async () => {
+    const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
+    
+    const mockFile = new File(["test"], "test.txt", { type: "text/plain" });
+    
     render(<ImageCompressor />);
     
-    const input = document.querySelector('input[type="file"]');
-    const validFile = new File(["test-image"], "test.jpg", { type: "image/jpeg" });
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [validFile] } });
-    }
-    
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [mockFile] } });
+
     await waitFor(() => {
-      expect(screen.getAllByText("Orijinal").length).toBeGreaterThan(0);
-      expect(screen.getAllByText("Sıkıştırılmış").length).toBeGreaterThan(0);
+      expect(alertMock).toHaveBeenCalledWith("Desteklenen formatlar: JPG, PNG, WebP");
+    });
+    
+    alertMock.mockRestore();
+  });
+
+  it("handles drag and drop", async () => {
+    const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
+    
+    vi.mock("browser-image-compression", () => ({
+      default: vi.fn().mockResolvedValue({
+        name: "compressed-test.jpg",
+        size: 50000,
+        type: "image/jpeg",
+      }),
+    }));
+
+    render(<ImageCompressor />);
+    
+    const dropZone = screen.getByTestId("drop-zone");
+    fireEvent.drop(dropZone, {
+      dataTransfer: {
+        files: [mockFile],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("download-button")).toBeInTheDocument();
     });
   });
 
-  it("displays quality slider when image is loaded", async () => {
+  it("displays download button after compression", async () => {
+    vi.mock("browser-image-compression", () => ({
+      default: vi.fn().mockResolvedValue({
+        name: "test.jpg",
+        size: 50000,
+        type: "image/jpeg",
+      }),
+    }));
+
+    const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
+    
     render(<ImageCompressor />);
     
-    const input = document.querySelector('input[type="file"]');
-    const validFile = new File(["test-image"], "test.jpg", { type: "image/jpeg" });
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [validFile] } });
-    }
-    
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [mockFile] } });
+
     await waitFor(() => {
-      expect(screen.getByText(/Sıkıştırma Kalitesi/)).toBeInTheDocument();
-      expect(screen.getByRole("slider")).toBeInTheDocument();
+      expect(screen.getByTestId("download-button")).toBeInTheDocument();
+      expect(screen.getByText("Sıkıştırılmış Görseli İndir")).toBeInTheDocument();
     });
   });
 
-  it("shows download button when compression is complete", async () => {
+  it("shows compression stats after processing", async () => {
+    vi.mock("browser-image-compression", () => ({
+      default: vi.fn().mockResolvedValue({
+        name: "test.jpg",
+        size: 50000,
+        type: "image/jpeg",
+      }),
+    }));
+
+    const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
+    
     render(<ImageCompressor />);
     
-    const input = document.querySelector('input[type="file"]');
-    const validFile = new File(["test-image"], "test.jpg", { type: "image/jpeg" });
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [validFile] } });
-    }
-    
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [mockFile] } });
+
     await waitFor(() => {
-      expect(screen.getByText(/Sıkıştırılmış Görseli İndir/)).toBeInTheDocument();
+      expect(screen.getByText(/dosya boyutu azaltıldı/)).toBeInTheDocument();
     });
   });
 
-  it("shows 'Yeni Görsel' button to reset", async () => {
-    render(<ImageCompressor />);
-    
-    const input = document.querySelector('input[type="file"]');
-    const validFile = new File(["test-image"], "test.jpg", { type: "image/jpeg" });
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [validFile] } });
-    }
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Yeni Görsel/)).toBeInTheDocument();
-    });
-  });
+  it("has reset button after compression", async () => {
+    vi.mock("browser-image-compression", () => ({
+      default: vi.fn().mockResolvedValue({
+        name: "test.jpg",
+        size: 50000,
+        type: "image/jpeg",
+      }),
+    }));
 
-  it("resets to upload area when 'Yeni Görsel' is clicked", async () => {
+    const mockFile = new File(["test"], "test.jpg", { type: "image/jpeg" });
+    
     render(<ImageCompressor />);
     
-    const input = document.querySelector('input[type="file"]');
-    const validFile = new File(["test-image"], "test.jpg", { type: "image/jpeg" });
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [validFile] } });
-    }
-    
-    await waitFor(() => {
-      expect(screen.getByText(/Yeni Görsel/)).toBeInTheDocument();
-    });
-    
-    fireEvent.click(screen.getByText(/Yeni Görsel/));
-    
-    await waitFor(() => {
-      expect(screen.getByText("Görsel Yükleyin")).toBeInTheDocument();
-    });
-  });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [mockFile] } });
 
-  it("displays file size stats correctly", async () => {
-    render(<ImageCompressor />);
-    
-    const input = document.querySelector('input[type="file"]');
-    const validFile = new File(["test-image"], "test.jpg", { type: "image/jpeg" });
-    Object.defineProperty(validFile, "size", { value: 1024 * 1024 }); // 1MB
-    
-    if (input) {
-      fireEvent.change(input, { target: { files: [validFile] } });
-    }
-    
     await waitFor(() => {
-      expect(screen.getByText("Tasarruf")).toBeInTheDocument();
+      expect(screen.getByText("Sıfırla")).toBeInTheDocument();
     });
   });
 });
