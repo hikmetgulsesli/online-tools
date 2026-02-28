@@ -1,0 +1,18 @@
+=== US-003: QR Code Generator Tool ===
+COMPLETED: 2026-02-28T04:30:00+03:00
+FILES CHANGED: 
+- src/app/page.tsx (home page with tool listings)
+- src/app/layout.tsx (updated metadata)
+- src/app/araclar/qr-kod/page.tsx (QR code tool page)
+- src/app/araclar/qr-kod/QRCodeGenerator.tsx (main component)
+- src/app/araclar/qr-kod/__tests__/QRCodeGenerator.test.tsx (tests)
+- src/test/setup.ts (test setup)
+- package.json (added test scripts, qrcode, lucide-react)
+- vitest.config.ts (vitest configuration)
+KEY DECISIONS: 
+- Used qrcode library for QR generation (client-side)
+- Real-time generation with 300ms debounce
+- PNG download via dataURL, SVG download via blob
+- Mobile responsive with Tailwind CSS
+- Clean, modern UI following design standards
+DEPENDENCIES ADDED: qrcode, lucide-react, @types/qrcode, vitest, @vitejs/plugin-react, @testing-library/react, @testing-library/jest-dom, jsdom

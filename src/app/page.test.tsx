@@ -10,18 +10,19 @@ describe('Home Page', () => {
 
   it('renders all tool cards', () => {
     render(<Home />);
-    expect(screen.getByText('QR Kod Oluşturucu')).toBeInTheDocument();
-    expect(screen.getByText('Görüntü Sıkıştırıcı')).toBeInTheDocument();
-    expect(screen.getByText('Şifre Oluşturucu')).toBeInTheDocument();
-    expect(screen.getByText('Base64 Kodlayıcı')).toBeInTheDocument();
-    expect(screen.getByText('URL Kısaltıcı')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /qr kod oluşturucu/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /görsel sıkıştırma/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /şifre oluşturucu/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /base64 kodlayıcı/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /url kısaltıcı/i })).toBeInTheDocument();
   });
 
   it('renders navigation links', () => {
     render(<Home />);
-    expect(screen.getByText('Hakkımızda')).toBeInTheDocument();
-    expect(screen.getByText('İletişim')).toBeInTheDocument();
-    expect(screen.getByText('Gizlilik')).toBeInTheDocument();
+    // Use getAllByRole since links appear in both header and footer
+    expect(screen.getAllByRole('link', { name: /hakkımızda/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('link', { name: /^İletişim$/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('link', { name: /gizlilik politikası/i }).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders footer', () => {
