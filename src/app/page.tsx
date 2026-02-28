@@ -25,7 +25,7 @@ const tools = [
     icon: Image,
     href: "/araclar/gorsel-sikistirma",
     color: "bg-green-100 text-green-600",
-    available: true,
+    available: false,
   },
   {
     id: "sifre-olusturucu",

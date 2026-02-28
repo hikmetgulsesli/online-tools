@@ -1,29 +1,38 @@
-=== US-006: Base64 Encoder/Decoder Tool ===
-COMPLETED: 2026-02-28T07:46
-FILES CHANGED:
-- src/app/araclar/base64/page.tsx
-- src/app/araclar/base64/Base64Encoder.tsx
-- src/app/araclar/base64/__tests__/Base64Encoder.test.tsx
-KEY DECISIONS:
-- Used browser native btoa/atob for Base64 encoding/decoding
-- Implemented encode/decode toggle with clear mode switching
-- Added clipboard copy functionality
-- Added character count display
-- Mobile responsive grid layout
-DEPENDENCIES ADDED: None
-
 === US-004: Image Compressor Tool ===
-COMPLETED: 2026-02-28T07:54
-FILES CHANGED:
-- src/app/araclar/gorsel-sikistirma/page.tsx
-- src/app/araclar/gorsel-sikistirma/ImageCompressor.tsx
-- src/app/araclar/gorsel-sikistirma/__tests__/ImageCompressor.test.tsx
-- src/app/page.tsx (updated available status)
-KEY DECISIONS:
-- Renamed folder from gorsel-sikistir to gorsel-sikistirma to match home page links
-- Used browser-image-compression library for client-side compression
-- Implemented drag-and-drop and file picker upload
-- Quality slider (10-100%) with real-time recompression
-- Before/after comparison with file size and compression ratio display
-- Mobile responsive design with grid layout
-DEPENDENCIES ADDED: None (browser-image-compression already installed)
+COMPLETED: 2026-02-28T07:10:00+03:00
+FILES_CHANGED:
+  - src/app/araclar/gorsel-sikistir/page.tsx (SEO metadata)
+  - src/app/araclar/gorsel-sikistir/ImageCompressor.tsx (main component)
+  - src/app/araclar/gorsel-sikistir/__tests__/ImageCompressor.test.tsx (tests)
+  - package.json (browser-image-compression dependency added)
+
+KEY_DECISIONS:
+  - Used browser-image-compression library for client-side compression
+  - Quality slider from 10-100% with default 80%
+  - Support for JPG, PNG, WebP formats
+  - Drag-and-drop and file picker for upload
+  - Before/after file size display with compression percentage
+  - Download compressed image functionality
+  - Client-side only processing for privacy
+
+DEPENDENCIES_ADDED:
+  - browser-image-compression (image compression)
+
+
+=== US-007: URL Shortener Tool ===
+COMPLETED: 2026-02-28T08:36:00+03:00
+FILES_CHANGED:
+  - src/app/araclar/url-kisalt/page.tsx
+  - src/app/araclar/url-kisalt/UrlShortener.tsx
+  - src/app/araclar/url-kisalt/__tests__/UrlShortener.test.tsx
+
+KEY_DECISIONS:
+  - Client-side only implementation using localStorage
+  - 6-character alphanumeric short code generation
+  - Automatic https protocol prefix if missing
+  - URL validation using native URL API
+  - Copy to clipboard functionality
+  - Individual URL deletion and clear all history
+  - Responsive design matching existing tool pages
+
+DEPENDENCIES_ADDED: None

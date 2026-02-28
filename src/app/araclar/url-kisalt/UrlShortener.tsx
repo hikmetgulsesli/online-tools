@@ -2,161 +2,165 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import {
-  Link2,
-  Copy,
-  Check,
-  RefreshCw,
-  ExternalLink,
-  Trash2,
-  Clock,
-} from "lucide-react";
+import { Link2, Copy, Check, Trash2, ExternalLink, Clock, Hash } from "lucide-react";
 
 interface ShortenedUrl {
   id: string;
   originalUrl: string;
   shortCode: string;
   createdAt: number;
+  clicks: number;
 }
 
-const STORAGE_KEY = "url-shortener-history";
-const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
-
-function generateShortCode(): string {
+const generateShortCode = (): string => {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+  const randomValues = new Uint8Array(6);
+  crypto.getRandomValues(randomValues);
+  return Array.from(randomValues).map(val => chars[val % chars.length]).join('');
+};
 
-function isValidUrl(url: string): boolean {
+
+const isValidUrl = (url: string): boolean => {
   try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
+    const urlObj = new URL(url);
+    return urlObj.protocol === "http:" || urlObj.protocol === "https:";
   } catch {
     return false;
   }
-}
+};
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString("tr-TR", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const STORAGE_KEY = "url-shortener-history";
 
 export function UrlShortener() {
-  const [input, setInput] = useState("");
+  const [url, setUrl] = useState("");
   const [error, setError] = useState("");
-  const [shortenedUrl, setShortenedUrl] = useState<ShortenedUrl | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [history, setHistory] = useState<ShortenedUrl[]>([]);
+  const [shortenedUrls, setShortenedUrls] = useState<ShortenedUrl[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load history from localStorage on mount
+  // Load from localStorage on mount
   useEffect(() => {
-    try {
+    if (typeof window !== "undefined") {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored) as ShortenedUrl[];
-        setHistory(parsed);
+        try {
+          const parsed = JSON.parse(stored);
+          setShortenedUrls(parsed);
+        } catch {
+          // Invalid JSON, ignore
+        }
       }
-    } catch {
-      // Silently fail if localStorage is not available
     }
   }, []);
 
-  // Save history to localStorage
-  const saveHistory = useCallback((newHistory: ShortenedUrl[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
-    } catch {
-      // Silently fail if localStorage is not available
+  // Save to localStorage when shortenedUrls changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(shortenedUrls));
     }
-  }, []);
+  }, [shortenedUrls]);
 
-  const shortenUrl = useCallback(() => {
+  const shortenUrl = useCallback(async () => {
     setError("");
-    setShortenedUrl(null);
-
-    if (!input.trim()) {
+    
+    if (!url.trim()) {
       setError("Lütfen bir URL girin");
       return;
     }
 
-    let urlToShorten = input.trim();
-    
     // Add protocol if missing
-    if (!/^https?:\/\//i.test(urlToShorten)) {
-      urlToShorten = "https://" + urlToShorten;
+    let normalizedUrl = url.trim();
+    if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+      normalizedUrl = "https://" + normalizedUrl;
     }
 
-    if (!isValidUrl(urlToShorten)) {
-      setError("Geçerli bir URL girin (http:// veya https://)");
+    if (!isValidUrl(normalizedUrl)) {
+      setError("Geçerli bir URL girin (örn: https://example.com)");
       return;
     }
 
     setIsLoading(true);
 
     // Simulate API delay for better UX
-    setTimeout(() => {
-      const shortCode = generateShortCode();
-      const newUrl: ShortenedUrl = {
-        id: shortCode,
-        originalUrl: urlToShorten,
-        shortCode,
-        createdAt: Date.now(),
-      };
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-      setShortenedUrl(newUrl);
-      
-      // Add to history
-      const updatedHistory = [newUrl, ...history].slice(0, 10); // Keep last 10
-      setHistory(updatedHistory);
-      saveHistory(updatedHistory);
-      
+    // Check if URL already exists in history
+    const existingUrl = shortenedUrls.find(item => item.originalUrl === normalizedUrl);
+    if (existingUrl) {
+      // Move existing URL to top of history
+      const updatedHistory = [
+        existingUrl,
+        ...shortenedUrls.filter((item) => item.id !== existingUrl.id),
+      ].slice(0, 10);
+      setShortenedUrls(updatedHistory);
+      setUrl("");
       setIsLoading(false);
-    }, 500);
-  }, [input, history, saveHistory]);
+      return;
+    }
 
-  const copyToClipboard = async (text: string) => {
+    // Generate unique short code (check for collisions)
+    let shortCode = generateShortCode();
+    while (shortenedUrls.some(item => item.shortCode === shortCode)) {
+      shortCode = generateShortCode();
+    }
+
+    const newUrl: ShortenedUrl = {
+      id: Date.now().toString(),
+      originalUrl: normalizedUrl,
+      shortCode,
+      createdAt: Date.now(),
+      clicks: 0,
+    };
+
+    setShortenedUrls(prev => [newUrl, ...prev]);
+    setUrl("");
+    setIsLoading(false);
+  }, [url, shortenedUrls]);
+
+  const copyToClipboard = async (shortUrl: string, id: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(shortUrl);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error("Failed to copy:", err);
     }
   };
 
-  const clearInput = () => {
-    setInput("");
-    setError("");
-    setShortenedUrl(null);
-  };
-
-  const deleteFromHistory = (id: string) => {
-    const updatedHistory = history.filter((item) => item.id !== id);
-    setHistory(updatedHistory);
-    saveHistory(updatedHistory);
+  const deleteUrl = (id: string) => {
+    setShortenedUrls(prev => prev.filter(u => u.id !== id));
   };
 
   const clearHistory = () => {
-    setHistory([]);
-    saveHistory([]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setShortenedUrls([]);
   };
 
-  const getShortUrl = (shortCode: string): string => {
-    return `${BASE_URL}/go/${shortCode}`;
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getShortUrl = (code: string): string => {
+    // In a real app, this would be your domain
+    return `${typeof window !== "undefined" ? window.location.origin : ""}/s/${code}`;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      shortenUrl();
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link
@@ -177,8 +181,7 @@ export function UrlShortener() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* Page Title */}
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-100 mb-4">
             <Link2 className="w-8 h-8 text-blue-600" />
@@ -188,51 +191,28 @@ export function UrlShortener() {
           </h1>
           <p className="text-slate-600 max-w-lg mx-auto">
             Uzun URL&apos;leri kısa ve paylaşılabilir bağlantılara dönüştürün.
-            Hızlı, ücretsiz ve kolay kullanım.
+            Tüm veriler tarayıcınızda saklanır.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
-          {/* Input Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <label
-              htmlFor="url-input"
-              className="block text-sm font-medium text-slate-700 mb-2"
-            >
-              Uzun URL
-            </label>
-            <div className="relative">
+        {/* URL Input Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
               <input
-                id="url-input"
-                type="url"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && shortenUrl()}
-                placeholder="https://example.com"
-                className="w-full px-4 py-3 pr-24 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-700 placeholder:text-slate-400 transition-all"
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="https://example.com/uzun-url-adresi..."
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                disabled={isLoading}
               />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {input && (
-                  <>
-                    <button
-                      onClick={clearInput}
-                      className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
-                      title="Temizle"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-              </div>
             </div>
-            {error && (
-              <p className="mt-2 text-sm text-red-500">{error}</p>
-            )}
-
             <button
               onClick={shortenUrl}
               disabled={isLoading}
-              className="w-full mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-all cursor-pointer active:scale-[0.98] whitespace-nowrap flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -246,182 +226,145 @@ export function UrlShortener() {
                 </>
               )}
             </button>
-
-            {/* Quick Examples */}
-            <div className="mt-6 pt-6 border-t border-slate-100">
-              <p className="text-sm text-slate-500 mb-3">Hızlı örnekler:</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  "https://google.com",
-                  "https://github.com",
-                  "https://wikipedia.org",
-                ].map((example) => (
-                  <button
-                    key={example}
-                    onClick={() => setInput(example)}
-                    className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors cursor-pointer"
-                  >
-                    {example.replace("https://", "")}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {/* Output Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-sm font-medium text-slate-700 mb-4">Kısa URL</h2>
-
-            <div className="min-h-[120px] flex items-center justify-center">
-              {shortenedUrl ? (
-                <div className="w-full">
-                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <span className="font-mono text-blue-600 font-medium truncate">
-                        {getShortUrl(shortenedUrl.shortCode)}
-                      </span>
-                      <button
-                        onClick={() => copyToClipboard(getShortUrl(shortenedUrl.shortCode))}
-                        className="flex-shrink-0 p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all cursor-pointer"
-                        title="Kopyala" aria-label="Kısa URL kopyala"
-                      >
-                        {copied ? (
-                          <Check className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <Copy className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                    <div className="text-sm text-slate-500 truncate">
-                      <span className="text-slate-400">Orijinal:</span>{" "}
-                      {shortenedUrl.originalUrl}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mt-4">
-                    <a
-                      href={shortenedUrl.originalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-medium transition-all cursor-pointer active:scale-[0.98]"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Ziyaret Et
-                    </a>
-                    <button
-                      onClick={() => copyToClipboard(getShortUrl(shortenedUrl.shortCode))}
-                      className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all cursor-pointer active:scale-[0.98]"
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Kopyalandı
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4" />
-                          Kopyala
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center p-8">
-                  <Link2 className="w-16 h-16 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500">
-                    Kısa URL oluşturmak için bir adres girin
-                  </p>
-                </div>
-              )}
+          {error && (
+            <div className="mt-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm text-red-600">{error}</p>
             </div>
+          )}
+
+          <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+            <Hash className="w-4 h-4" />
+            <span>Protokol (https://) otomatik eklenir</span>
           </div>
         </div>
 
-        {/* History Section */}
-        {history.length > 0 && (
-          <div className="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-slate-400" />
-                <h2 className="text-lg font-semibold text-slate-900">Geçmiş</h2>
-              </div>
+        {/* Shortened URLs List */}
+        {shortenedUrls.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Kısaltılmış URL&apos;ler
+              </h2>
               <button
                 onClick={clearHistory}
-                className="text-sm text-red-500 hover:text-red-600 transition-colors cursor-pointer flex items-center gap-1"
+                className="text-sm text-red-600 hover:text-red-700 transition-colors cursor-pointer flex items-center gap-1"
               >
                 <Trash2 className="w-4 h-4" />
                 Temizle
               </button>
             </div>
 
-            <div className="space-y-3">
-              {history.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="font-mono text-blue-600 font-medium truncate">
-                      {getShortUrl(item.shortCode)}
-                    </div>
-                    <div className="text-sm text-slate-500 truncate mt-1">
-                      {item.originalUrl}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      {formatDate(item.createdAt)}
+            <div className="divide-y divide-slate-100">
+              {shortenedUrls.map((item) => {
+                const shortUrl = getShortUrl(item.shortCode);
+                const isCopied = copiedId === item.id;
+
+                return (
+                  <div key={item.id} className="p-4 sm:p-6 hover:bg-slate-50 transition-colors">
+                    <div className="flex flex-col gap-3">
+                      {/* Original URL */}
+                      <div className="flex items-start gap-2">
+                        <ExternalLink className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                        <a
+                          href={item.originalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-slate-600 hover:text-slate-900 transition-colors truncate"
+                          title={item.originalUrl}
+                        >
+                          {item.originalUrl}
+                        </a>
+                      </div>
+
+                      {/* Short URL and Actions */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div className="flex-1 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2.5">
+                          <code className="text-blue-700 font-mono text-sm">
+                            {shortUrl}
+                          </code>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => copyToClipboard(shortUrl, item.id)}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all cursor-pointer ${
+                              isCopied
+                                ? "bg-green-100 text-green-700"
+                                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Kopyalandı
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4" />
+                                Kopyala
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => deleteUrl(item.id)}
+                            className="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                            title="Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Meta info */}
+                      <div className="flex items-center gap-4 text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatDate(item.createdAt)}
+                        </span>
+                        <span>Kod: {item.shortCode}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => copyToClipboard(getShortUrl(item.shortCode))}
-                      className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all cursor-pointer"
-                      title="Kopyala" aria-label="Kısa URL kopyala"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => deleteFromHistory(item.id)}
-                      className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
-                      title="Sil"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Info Section */}
-        <div className="mt-12 grid sm:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2">Ücretsiz</h3>
+        {/* Empty State */}
+        {shortenedUrls.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-100 mb-4">
+              <Link2 className="w-6 h-6 text-slate-400" />
+            </div>
+            <h3 className="font-semibold text-slate-900 mb-2">
+              Henüz URL kısaltılmadı
+            </h3>
             <p className="text-sm text-slate-600">
-              Sınırsız URL kısaltma. Hiçbir ücret ödemeden tüm
-              özelliklerden yararlanın.
+              Yukarıdaki alana bir URL girerek kısaltmaya başlayın.
             </p>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
+        )}
+
+        {/* Info Cards */}
+        <div className="mt-8 grid sm:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl p-5 border border-slate-200">
             <h3 className="font-semibold text-slate-900 mb-2">Güvenli</h3>
             <p className="text-sm text-slate-600">
-              URL&apos;ler tarayıcınızda işlenir. Geçmiş sadece sizin
-              cihazınızda saklanır.
+              Tüm veriler tarayıcınızda saklanır. URL&apos;leriniz sunucularımıza gönderilmez.
             </p>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2">Hızlı</h3>
+          <div className="bg-white rounded-xl p-5 border border-slate-200">
+            <h3 className="font-semibold text-slate-900 mb-2">Kolay Paylaşım</h3>
             <p className="text-sm text-slate-600">
-              Saniyeler içinde kısa URL oluşturun ve paylaşmaya
-              başlayın.
+              Tek tıklamayla kısa URL&apos;yi kopyalayın ve istediğiniz yerde paylaşın.
             </p>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-16">
+      <footer className="bg-white border-t border-slate-200 mt-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-sm text-slate-500">
