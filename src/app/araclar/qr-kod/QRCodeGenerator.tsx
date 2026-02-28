@@ -1,4 +1,5 @@
 "use client";
+import Link from 'next/link';
 
 import { useState, useCallback, useEffect } from "react";
 import { toDataURL, toString } from "qrcode";
@@ -116,20 +117,20 @@ export function QRCodeGenerator() {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <a
+          <Link
             href="/"
             className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors"
           >
             <QrCode className="w-6 h-6 text-blue-600" />
             <span className="font-semibold text-lg">Online Araçlar</span>
-          </a>
+          </Link>
           <nav className="hidden sm:flex items-center gap-6">
-            <a
+            <Link
               href="/"
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
             >
               Ana Sayfa
-            </a>
+            </Link>
           </nav>
         </div>
       </header>
@@ -230,7 +231,7 @@ export function QRCodeGenerator() {
             <div className="aspect-square bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden">
               {isGenerating ? (
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-10 h-10 border-3 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+                  <div className="w-10 h-10 border-[3px] border-slate-200 border-t-blue-500 rounded-full animate-spin" />
                   <span className="text-sm text-slate-500">Oluşturuluyor...</span>
                 </div>
               ) : qrDataUrl ? (
@@ -306,24 +307,24 @@ export function QRCodeGenerator() {
               © 2024 Online Araçlar. Tüm hakları saklıdır.
             </p>
             <div className="flex items-center gap-6">
-              <a
+              <Link
                 href="/hakkimizda"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
                 Hakkımızda
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/iletisim"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
                 İletişim
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/gizlilik"
                 className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
               >
                 Gizlilik
-              </a>
+              </Link>
             </div>
           </div>
         </div>
